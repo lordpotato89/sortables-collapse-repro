@@ -21,17 +21,28 @@ One screen: 8 colored cards, each expandable (280px) / collapsible (72px) via
 the chevron; a **Collapse all / Expand all** toggle; cards force-collapse
 during a drag (common "collapse while sorting" UX). Long-press ~400ms to drag.
 
-## Bug 1 — collapse-all at rest after a drag: stale offset + sorting permanently dead
+## Bug 1 — at-rest size change after a drag: stale offset + sorting permanently dead
 
-1. Leave all cards **expanded**.
-2. Long-press any card, drag it one slot, drop. (Works.)
-3. Tap **Collapse all** — no drag involved.
-4. 🐛 The whole list shifts far down by a blank offset, and from now on
-   **no long-press activates a drag**.
-5. Expand any card → layout snaps back, sorting works again (why this looks
-   intermittent in production).
+1. Tap **Collapse all**.
+2. Long-press any card, drop it anywhere. (Ordering is frozen — that is bug 2,
+   see below — but the lift+drop is enough: it records the internal
+   `prevActiveItemKey` that bug 1 needs.)
+3. Tap **Expand all** — a size change with no drag involved.
+4. 🐛 The whole list shifts by a bogus offset computed from the stale key, and
+   from now on **no long-press activates a drag** (`sortEnabled` is stuck
+   false with no drop event coming to restore it).
+5. Toggle any single card → layout snaps back, sorting works again (why this
+   looks intermittent in production).
 
-Step 2 matters: without a prior drag, step 3 is harmless.
+Step 2 matters: without a prior drag, step 3 is harmless. The original field
+report hit the same path in the opposite direction (drag an expanded card,
+then Collapse all) — the mechanism is direction-agnostic; any at-rest
+cross-size change after a completed drag triggers it.
+
+> Simulator note: long-pressing a card while the content is SCROLLABLE (all
+> cards expanded) needs a perfectly still hold — mouse jitter is claimed by
+> the ScrollView as scroll intent and cancels the activation. On a physical
+> device this is not an issue.
 
 Root cause (see issue): `AutoOffsetAdjustmentProvider.adaptLayoutProps` runs on
 every cross-size change and resolves `activeItemKey ?? prevActiveItemKey`;
