@@ -3,9 +3,10 @@
 Minimal repro for [MatiPl01/react-native-sortables#605](https://github.com/MatiPl01/react-native-sortables/issues/605):
 two bugs in `autoAdjustOffsetDuringDrag` with collapsible items.
 
-- react-native-sortables **1.9.4** (unpatched)
-- Expo SDK 54 / react-native 0.81.5 / react-native-reanimated 4.1.x
-- Pure JS deps — runs in **Expo Go**
+- react-native-sortables **1.9.4** (unpatched — the version under report)
+- App shell: Expo SDK 57 / react-native 0.86 so it runs in the CURRENT **Expo Go**
+  (the bugs were originally observed on SDK 54 / RN 0.81.5 / reanimated 4.1.x —
+  they are pure-JS logic inside the library and reproduce identically on both)
 
 ## Run
 
