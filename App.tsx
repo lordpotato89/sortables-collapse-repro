@@ -42,6 +42,16 @@ export default function App() {
 
   const scrollableRef = useAnimatedRef<Animated.ScrollView>()
 
+  // Diagnostic event log — proves the bugs without touching the library:
+  //  bug 1: "touch …" lines keep arriving but "DRAG ACTIVATED" never follows.
+  //  bug 2: "DRAG ACTIVATED" fires but no "ORDER CHANGE" ever appears.
+  const [events, setEvents] = useState<string[]>([])
+  const logEvent = useCallback((msg: string) => {
+    const line = `${new Date().toISOString().slice(14, 23)}  ${msg}`
+    console.log("[repro]", line)
+    setEvents((e) => [line, ...e].slice(0, 7))
+  }, [])
+
   const allCollapsed = items.every((i) => !expanded[i.id])
   const toggleAll = useCallback(() => {
     setExpanded(Object.fromEntries(ITEMS.map((i) => [i.id, allCollapsed])))
@@ -52,6 +62,7 @@ export default function App() {
       const isExpanded = expanded[item.id] && !isDragging
       return (
         <View
+          onTouchStart={() => logEvent(`touch      ${item.label}`)}
           style={[
             styles.card,
             { backgroundColor: item.color, height: isExpanded ? EXPANDED_H : COLLAPSED_H },
@@ -77,7 +88,7 @@ export default function App() {
         </View>
       )
     },
-    [expanded, isDragging],
+    [expanded, isDragging, logEvent],
   )
 
   return (
@@ -104,13 +115,27 @@ export default function App() {
           dimensionsAnimationType="worklet"
           scrollableRef={scrollableRef}
           autoAdjustOffsetDuringDrag
-          onDragStart={() => setIsDragging(true)}
-          onDragEnd={({ data }) => {
+          onDragStart={({ key }) => {
+            logEvent(`DRAG ACTIVATED  ${key}`)
+            setIsDragging(true)
+          }}
+          onOrderChange={({ fromIndex, toIndex }) =>
+            logEvent(`ORDER CHANGE  ${fromIndex} -> ${toIndex}`)
+          }
+          onDragEnd={({ data, indexToKey }) => {
+            logEvent(`DROP  order: ${indexToKey.map((k: string) => k.slice(-1)).join(",")}`)
             setIsDragging(false)
             setItems(data)
           }}
         />
       </Animated.ScrollView>
+      <View style={styles.logOverlay} pointerEvents="none">
+        {events.map((e, i) => (
+          <Text key={i} style={[styles.logLine, i === 0 && styles.logLineLatest]}>
+            {e}
+          </Text>
+        ))}
+      </View>
     </GestureHandlerRootView>
   )
 }
@@ -142,4 +167,15 @@ const styles = StyleSheet.create({
   cardLabel: { fontSize: 16, fontWeight: "700", color: "#fff" },
   chevron: { fontSize: 16, color: "#fff" },
   cardBody: { marginTop: 12, color: "#fff", opacity: 0.85 },
+  logOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "rgba(0,0,0,0.82)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  logLine: { color: "#9e9e9e", fontFamily: "Menlo", fontSize: 11 },
+  logLineLatest: { color: "#4ade80" },
 })

@@ -75,6 +75,20 @@ when `additionalCrossOffset !== null`, but the offset only becomes non-null when
 a mid-drag size change routes through the offset-application block — a drag
 with no size change leaves the strategy returning early on every move.
 
+## Reading the on-screen event log
+
+A diagnostic overlay (bottom of the screen, also in the Metro console) logs
+`touch`, `DRAG ACTIVATED`, `ORDER CHANGE` and `DROP` — all from app-side
+callbacks, the library is untouched. The bugs read as:
+
+- **Bug 2**: `touch` → `DRAG ACTIVATED` → you drag across several cards →
+  **no `ORDER CHANGE` line ever appears** → `DROP` with the unchanged order.
+  (On a healthy grid every crossing logs `ORDER CHANGE x -> y`.)
+- **Bug 1** (after the drag + Expand all): `touch` lines keep appearing on
+  every long-press, but **`DRAG ACTIVATED` never follows** — the touch
+  reaches the item; the library refuses activation (`sortEnabled` stuck
+  false). After toggling one card, `touch` → `DRAG ACTIVATED` works again.
+
 ## Fix we run in production
 
 Both fixes (plus the transition-scoped ordering gate that the second one needs
