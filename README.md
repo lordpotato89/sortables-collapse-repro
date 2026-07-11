@@ -28,16 +28,22 @@ during a drag (common "collapse while sorting" UX). Long-press ~400ms to drag.
    see below — but the lift+drop is enough: it records the internal
    `prevActiveItemKey` that bug 1 needs.)
 3. Tap **Expand all** — a size change with no drag involved.
-4. 🐛 The whole list shifts by a bogus offset computed from the stale key, and
-   from now on **no long-press activates a drag** (`sortEnabled` is stuck
-   false with no drop event coming to restore it).
-5. Toggle any single card → layout snaps back, sorting works again (why this
-   looks intermittent in production).
+4. 🐛 From now on **no long-press activates a drag** (`sortEnabled` is stuck
+   false with no drop event coming to restore it). NOTE: in this GROW
+   direction there is NO visible layout jump — the bogus offset is negative
+   and the code clamps it via `Math.max(0, …)`; the corruption is silent.
+5. Toggle any single card → sorting works again (why this looks intermittent
+   in production).
 
-Step 2 matters: without a prior drag, step 3 is harmless. The original field
-report hit the same path in the opposite direction (drag an expanded card,
-then Collapse all) — the mechanism is direction-agnostic; any at-rest
-cross-size change after a completed drag triggers it.
+**Shrink direction (the original field report — adds the visible jump):**
+perform one drag while all cards are EXPANDED (in the simulator hold the
+mouse perfectly still during the long-press — see note below), drop it, then
+tap **Collapse all**: the whole list shifts far down by a blank offset
+(positive stale-key offset, not clamped) AND sorting is dead, same as above.
+
+Step 2 matters in both directions: without a prior drag, the size change is
+harmless. Any at-rest cross-size change after a completed drag triggers the
+mechanism; only the offset's sign (and thus the visible jump) differs.
 
 > Simulator note: long-pressing a card while the content is SCROLLABLE (all
 > cards expanded) needs a perfectly still hold — mouse jitter is claimed by
